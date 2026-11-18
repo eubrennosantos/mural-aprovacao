@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useState } from 'react';
 import MediaViewer from './MediaViewer';
+import ThemeToggle from './ThemeToggle';
 import { BRAND } from '@/lib/brand';
 import { formatDate, type Post, type Status } from '@/lib/types';
 
@@ -87,13 +88,17 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
       {/* Local nav (sticky) */}
       <div className="cb-localnav">
         <div className="cb-inner">
-          <img src={BRAND.wordmarkBlack} alt={BRAND.name} className="cb-wordmark" />
+          <img src={BRAND.wordmarkBlack} alt={BRAND.name} className="cb-wordmark logo-light" />
+          <img src={BRAND.wordmarkWhite} alt={BRAND.name} className="cb-wordmark logo-dark" />
+          <div className="cb-localnav-right">
           <div className="cb-filters" role="tablist">
             {FILTERS.map((f) => (
               <button key={f.key} role="tab" aria-selected={filter === f.key} className={filter === f.key ? 'on' : ''} onClick={() => go(f.key)}>
                 {f.label}<span>{counts[f.key]}</span>
               </button>
             ))}
+          </div>
+            <ThemeToggle />
           </div>
         </div>
       </div>
@@ -206,7 +211,8 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
 
       <footer className="cb-footer">
         <div className="cb-inner">
-          <img src={BRAND.markBlack} alt="" className="cb-footer-mark" />
+          <img src={BRAND.markBlack} alt="" className="cb-footer-mark logo-light" />
+          <img src={BRAND.markWhite} alt="" className="cb-footer-mark logo-dark" />
           <p>Your answers are saved automatically. You can change a decision at any time while a post is in review.</p>
           <div className="cb-footer-row">
             <span>© {new Date().getFullYear()} {BRAND.name}. Private preview — please do not share this link.</span>

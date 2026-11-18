@@ -23,7 +23,7 @@ h2, h3 { letter-spacing: -0.01em; }
 a { color: inherit; text-decoration: none; }
 code { font-size: 13px; word-break: break-all; }
 input, select, textarea {
-  width: 100%; font: inherit; color: inherit; background: #fff;
+  width: 100%; font: inherit; color: inherit; background: var(--white);
   border: 1px solid var(--silver); border-radius: var(--radius); padding: 10px 12px;
 }
 textarea { resize: vertical; }
@@ -231,17 +231,17 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .btn {
   font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap;
-  border: 1px solid var(--silver); background: #fff; color: var(--ink);
+  border: 1px solid var(--silver); background: var(--white); color: var(--ink);
   padding: 9px 16px; border-radius: 999px;
 }
 .btn:disabled { opacity: .5; cursor: default; }
-.btn.primary { background: var(--black); color: #fff; border-color: var(--black); }
+.btn.primary { background: var(--black); color: var(--white); border-color: var(--black); }
 .btn.ghost { background: transparent; }
 .btn.danger { color: var(--gray); }
 .btn.big { width: 100%; padding: 14px; margin: 16px 0 4px; }
 .chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
-.chip.pending { background: #eeeeec; color: var(--gray); }
-.chip.approved { background: var(--black); color: #fff; }
+.chip.pending { background: var(--week-past); color: var(--gray); }
+.chip.approved { background: var(--black); color: var(--white); }
 .chip.changes { border: 1px solid var(--black); color: var(--black); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .note { background: var(--off); border-left: 2px solid var(--black); padding: 10px 12px; font-size: 13px; }
@@ -264,3 +264,50 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .admin-post .info p { margin: 0; }
 .thumb .media { border-radius: 4px; }
 @media (max-width: 600px) { .admin-post { grid-template-columns: 96px 1fr; } }
+
+/* ───────── Theme toggle ───────── */
+.theme-toggle {
+  width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--ink);
+  display: inline-grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: background .2s;
+}
+.theme-toggle:hover { background: var(--off); }
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .moon { display: block; } .theme-toggle .sun { display: none; }
+html[data-theme="dark"] .theme-toggle .moon { display: none; }
+html[data-theme="dark"] .theme-toggle .sun { display: block; }
+.cb-localnav-right { display: flex; align-items: center; gap: 22px; }
+
+/* Logos: show the right color for each theme */
+.logo-dark { display: none !important; }
+html[data-theme="dark"] .logo-light { display: none !important; }
+html[data-theme="dark"] .logo-dark { display: block !important; }
+
+/* ───────── Dark theme: swap the palette, keep always-dark areas dark ───────── */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --black: #f5f5f3;
+  --charcoal: #d5d5d5;
+  --gray: #8c8c8a;
+  --silver: #3a3a3a;
+  --off: #161616;
+  --white: #0b0b0b;
+  --line: #262626;
+  --week-past: #1e1e1e;
+}
+html[data-theme="dark"] body { background: var(--white); }
+/* Areas that are dark in both themes get the original palette back */
+html[data-theme="dark"] .cb-hero,
+html[data-theme="dark"] .cb-globalnav,
+html[data-theme="dark"] .media {
+  --black: #111111; --charcoal: #292929; --gray: #777777; --silver: #d5d5d5; --off: #f7f7f5; --white: #ffffff; --line: #e4e4e1;
+}
+html[data-theme="dark"] .cb-hero { background: #000; border-bottom: 1px solid #1c1c1c; }
+html[data-theme="dark"] .cb-globalnav { background: #000; }
+html[data-theme="dark"] .cb-localnav { background: rgba(11,11,11,.78); }
+html[data-theme="dark"] .cb-week.current .cb-week-label,
+html[data-theme="dark"] .cb-week.current .cb-week-meta { color: #555; }
+html[data-theme="dark"] .cb-mblock.open .cb-mblock-count,
+html[data-theme="dark"] .cb-mblock.open .cb-mblock-detail { color: #555; }
+html[data-theme="dark"] .cb-mblock.open .cb-mbar { background: #cfcfcc; }
+html[data-theme="dark"] .cb-week.sel { box-shadow: 0 0 0 2px var(--white), 0 0 0 3.5px var(--black); }
+html[data-theme="dark"] .cb-tile.approved .media { opacity: 1; }

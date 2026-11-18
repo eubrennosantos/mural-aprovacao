@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import AdminBoard from '@/components/AdminBoard';
+import ThemeToggle from '@/components/ThemeToggle';
 import { isAdmin } from '@/lib/auth';
 import { getPosts } from '@/lib/posts';
 import { db } from '@/lib/supabase';
@@ -27,11 +28,14 @@ export default async function ClientAdmin({ params }: { params: Promise<{ client
           <Link href="/admin" className="muted small">← Clientes</Link>
           <h1>{client.name}</h1>
         </div>
+        <div className="row-tight" style={{ alignItems: 'center' }}>
+        <ThemeToggle label="Tema escuro" />
         <form method="post" action="/api/admin/clients">
           <input type="hidden" name="action" value="delete" />
           <input type="hidden" name="id" value={client.id} />
           <button className="btn ghost danger" title="Apaga o cliente, os posts e os arquivos">Excluir cliente</button>
         </form>
+        </div>
       </header>
       <AdminBoard clientId={client.id} shareUrl={shareUrl} posts={posts} />
     </main>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import ThemeToggle from '@/components/ThemeToggle';
 import { isAdmin } from '@/lib/auth';
 import { db } from '@/lib/supabase';
 
@@ -26,9 +27,12 @@ export default async function Admin() {
           <div className="brand">B.S REC</div>
           <h1>Clientes</h1>
         </div>
+        <div className="row-tight" style={{ alignItems: 'center' }}>
+          <ThemeToggle label="Tema escuro" />
         <form method="post" action="/api/admin/logout">
           <button className="btn ghost">Sair</button>
         </form>
+        </div>
       </header>
 
       <form className="panel row" method="post" action="/api/admin/clients">
