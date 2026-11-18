@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import MediaViewer from './MediaViewer';
@@ -52,7 +52,7 @@ export default function AdminBoard({ clientId, shareUrl, posts }: { clientId: st
       <div className="admin-list">
         {posts.map((p) => (
           <div key={p.id} className={`panel admin-post ${viewOf(p)}`}>
-            <div className="thumb"><MediaViewer media={p.media} /></div>
+            <div className="thumb"><MediaViewer media={p.media} cover={p.cover_url} /></div>
             <div className="info">
               <div className="row-between">
                 <strong>{formatDate(p.post_date, 'pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}</strong>
@@ -84,6 +84,11 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
   const [format, setFormat] = useState<Format>(post?.format || 'image');
   const [caption, setCaption] = useState(post?.caption || '');
   const [kept, setKept] = useState<ViewMedia[]>(post?.media || []);
+  const [coverKept, setCoverKept] = useState<string | null>(post?.cover_path || null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const fileUrl = useMemo(() => (coverFile ? URL.createObjectURL(coverFile) : null), [coverFile]);
+  useEffect(() => () => { if (fileUrl) URL.revokeObjectURL(fileUrl); }, [fileUrl]);
+  const coverPreview = fileUrl || (coverKept ? post?.cover_url || null : null);
   const [files, setFiles] = useState<File[]>([]);
   const [resubmit, setResubmit] = useState(post?.status === 'changes' && !post?.posted);
   const today = new Date().toISOString().slice(0, 10);
@@ -96,23 +101,38 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
     e.preventDefault();
     const tooBig = files.find((f) => f.size > MAX_MB * 1024 * 1024);
     if (tooBig) return alert(`"${tooBig.name}" passa de ${MAX_MB} MB. Exporte numa versão mais leve (ex.: 1080p, bitrate menor).`);
-    if (!kept.length && !files.length) return alert('Adicione pelo menos uma imagem ou vídeo.');
+    if (coverFile && coverFile.size > MAX_MB * 1024 * 1024) return alert(`A capa passa de ${MAX_MB} MB.`);
+    if (!kept.length && !files.length && !coverFile && !coverKept) return alert('Adicione pelo menos uma capa, imagem ou vídeo.');
 
     const supa = browserSupa();
-    const uploaded: StoredMedia[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      setStatus(`Enviando arquivo ${i + 1} de ${files.length}…`);
+    async function uploadOne(f: File) {
       const r = await fetch('/api/admin/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clientId, filename: f.name }),
       });
-      if (!r.ok) { setStatus(''); return alert('Erro ao preparar o upload.'); }
+      if (!r.ok) throw new Error('Erro ao preparar o upload.');
       const { path, token } = await r.json();
       const { error } = await supa.storage.from('mural').uploadToSignedUrl(path, token, f, { contentType: f.type });
-      if (error) { setStatus(''); return alert('Erro no upload: ' + error.message); }
-      uploaded.push({ path, type: f.type.startsWith('video') ? 'video' : 'image' });
+      if (error) throw new Error('Erro no upload: ' + error.message);
+      return path as string;
+    }
+
+    const uploaded: StoredMedia[] = [];
+    let coverPath = coverKept;
+    try {
+      if (coverFile) {
+        setStatus('Enviando capa…');
+        coverPath = await uploadOne(coverFile);
+      }
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        setStatus(`Enviando arquivo ${i + 1} de ${files.length}…`);
+        uploaded.push({ path: await uploadOne(f), type: f.type.startsWith('video') ? 'video' : 'image' });
+      }
+    } catch (err) {
+      setStatus('');
+      return alert((err as Error).message);
     }
 
     setStatus('Salvando…');
@@ -120,7 +140,7 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
     const res = await fetch('/api/admin/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, resubmit, posted, post_url: postUrl }),
+      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, cover_path: coverPath, resubmit, posted, post_url: postUrl }),
     });
     setStatus('');
     if (!res.ok) return alert('Erro ao salvar: ' + (await res.text()));
@@ -146,6 +166,20 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
       </div>
 
       <label>Legenda<textarea rows={6} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption in English…" /></label>
+
+      <div className="cover-field">
+        <div className="cover-preview">
+          {coverPreview ? <img src={coverPreview} alt="Capa" /> : <span>Sem capa</span>}
+        </div>
+        <div className="cover-controls">
+          <label>Capa (imagem que aparece no mural e no início do vídeo)
+            <input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />
+          </label>
+          {(coverKept || coverFile) && (
+            <button type="button" className="btn ghost danger" onClick={() => { setCoverFile(null); setCoverKept(null); }}>Remover capa</button>
+          )}
+        </div>
+      </div>
 
       {kept.length > 0 && (
         <div className="kept">

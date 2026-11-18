@@ -2,14 +2,18 @@
 import { useState } from 'react';
 import type { ViewMedia } from '@/lib/types';
 
-export default function MediaViewer({ media }: { media: ViewMedia[] }) {
+// `cover` is the post's cover image: the poster of a video, or the picture shown when there is no media.
+export default function MediaViewer({ media, cover }: { media: ViewMedia[]; cover?: string | null }) {
   const [i, setI] = useState(0);
-  if (!media.length) return <div className="media empty">No media yet</div>;
+  if (!media.length) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return cover ? <div className="media"><img src={cover} alt="" loading="lazy" /></div> : <div className="media empty">No media yet</div>;
+  }
   const m = media[Math.min(i, media.length - 1)];
   return (
     <div className="media">
       {m.type === 'video' ? (
-        <video key={m.url} src={m.url} controls playsInline preload="metadata" />
+        <video key={m.url} src={m.url} poster={cover || undefined} controls playsInline preload={cover ? 'none' : 'metadata'} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={m.url} src={m.url} alt="" loading="lazy" />

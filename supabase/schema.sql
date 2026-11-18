@@ -38,3 +38,10 @@ on conflict (id) do nothing;
 -- v2: marcação "Postado" + link do post
 alter table mural_posts add column if not exists posted boolean not null default false;
 alter table mural_posts add column if not exists post_url text;
+
+-- v3: capa separada por post
+alter table mural_posts add column if not exists cover_path text;
+-- posts de vídeo que só tinham a capa como arquivo: move a imagem para o campo capa
+update mural_posts set cover_path = media->0->>'path', media = '[]'::jsonb
+where cover_path is null and format = 'video' and jsonb_array_length(media) = 1 and media->0->>'type' = 'image';
+notify pgrst, 'reload schema';

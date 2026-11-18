@@ -19,6 +19,8 @@ export type Post = {
   reviewed_at: string | null;
   posted: boolean;
   post_url: string | null;
+  cover_path: string | null;
+  cover_url: string | null;
 };
 
 // What the post looks like to the client: published posts are "posted" regardless of review status.

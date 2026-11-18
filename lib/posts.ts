@@ -12,5 +12,7 @@ export async function getPosts(clientId: string): Promise<Post[]> {
   return (data || []).map((p) => ({
     ...p,
     media: ((p.media || []) as StoredMedia[]).map((m) => ({ ...m, url: publicUrl(m.path) })),
+    cover_path: p.cover_path || null,
+    cover_url: p.cover_path ? publicUrl(p.cover_path) : null,
   }));
 }

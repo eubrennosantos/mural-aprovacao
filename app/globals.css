@@ -261,6 +261,10 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .form h3 { margin: 0; }
 .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
 .check input { width: auto; }
+.cover-field { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
+.cover-preview { width: 96px; aspect-ratio: 4 / 5; border-radius: 4px; overflow: hidden; background: var(--off); border: 1px dashed var(--silver); display: grid; place-items: center; font-size: 11px; color: var(--gray); }
+.cover-preview img { width: 100%; height: 100%; object-fit: cover; }
+.cover-controls { display: grid; gap: 8px; justify-items: start; }
 .posted-box { display: grid; gap: 10px; padding: 12px 14px; background: var(--off); border-radius: var(--radius); }
 .kept { display: flex; gap: 8px; flex-wrap: wrap; }
 .kept-item { position: relative; width: 84px; height: 105px; border-radius: 4px; overflow: hidden; background: var(--black); }

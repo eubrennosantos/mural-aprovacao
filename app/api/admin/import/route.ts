@@ -35,6 +35,7 @@ export async function POST(req: Request) {
   if (dup && dup.length) return NextResponse.json({ ok: true, skipped: true });
 
   const media: { path: string; type: 'image' | 'video' }[] = [];
+  let cover_path: string | null = null;
   if (file && typeof file !== 'string') {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
     const path = `${clientId}/${crypto.randomUUID()}.${ext}`;
@@ -42,7 +43,8 @@ export async function POST(req: Request) {
       .from(BUCKET)
       .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type || 'image/jpeg' });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    media.push({ path, type: (file.type || '').startsWith('video') ? 'video' : 'image' });
+    if ((file.type || '').startsWith('video')) media.push({ path, type: 'video' });
+    else cover_path = path; // imported images are the post's cover
   }
 
   const { error } = await supa.from('mural_posts').insert({
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
     format,
     caption,
     media,
+    cover_path,
     posted,
     post_url: posted ? post_url : null,
     status: posted ? 'approved' : 'pending',

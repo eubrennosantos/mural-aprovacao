@@ -260,7 +260,7 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
 
   return (
     <article className={`cb-tile ${viewOf(post)}`}>
-      <MediaViewer media={post.media} />
+      <MediaViewer media={post.media} cover={post.cover_url} />
       <div className="cb-tile-body">
         <div className="cb-tile-meta">
           <span>{formatDate(post.post_date, 'en-US', { weekday: 'long' })}</span>
