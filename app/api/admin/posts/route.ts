@@ -5,6 +5,19 @@ import type { StoredMedia } from '@/lib/types';
 
 const FORMATS = ['image', 'carousel', 'video'];
 
+// Only keep real web links (blocks javascript: and similar).
+function cleanUrl(v: unknown) {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  const withProto = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  try {
+    const u = new URL(withProto);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // Create (no id) or update (with id) a post.
 export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -15,6 +28,8 @@ export async function POST(req: Request) {
     post_date: body.post_date,
     format: FORMATS.includes(body.format) ? body.format : 'image',
     caption: String(body.caption || ''),
+    posted: !!body.posted,
+    post_url: body.posted ? cleanUrl(body.post_url) : null,
     updated_at: new Date().toISOString(),
   };
 
@@ -28,7 +43,7 @@ export async function POST(req: Request) {
       fields.media = body.media;
     }
     // New version goes back to the client for review; previous comment stays visible.
-    if (body.resubmit) {
+    if (body.resubmit && !body.posted) {
       fields.status = 'pending';
       fields.revision = (current.revision || 1) + 1;
       fields.reviewed_at = null;

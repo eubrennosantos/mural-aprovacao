@@ -11,13 +11,13 @@ export default async function Admin() {
   const supa = db();
   const [{ data: clients }, { data: posts }] = await Promise.all([
     supa.from('mural_clients').select('id, name, created_at').order('created_at', { ascending: false }),
-    supa.from('mural_posts').select('client_id, status'),
+    supa.from('mural_posts').select('client_id, status, posted'),
   ]);
 
-  const counts: Record<string, { pending: number; approved: number; changes: number }> = {};
+  const counts: Record<string, { pending: number; approved: number; changes: number; posted: number }> = {};
   for (const p of posts || []) {
-    counts[p.client_id] ??= { pending: 0, approved: 0, changes: 0 };
-    counts[p.client_id][p.status as 'pending']++;
+    counts[p.client_id] ??= { pending: 0, approved: 0, changes: 0, posted: 0 };
+    counts[p.client_id][(p.posted ? 'posted' : p.status) as 'pending']++;
   }
 
   return (
@@ -42,7 +42,7 @@ export default async function Admin() {
 
       <div className="list">
         {(clients || []).map((c) => {
-          const n = counts[c.id] || { pending: 0, approved: 0, changes: 0 };
+          const n = counts[c.id] || { pending: 0, approved: 0, changes: 0, posted: 0 };
           return (
             <Link key={c.id} href={`/admin/${c.id}`} className="panel client-row">
               <strong>{c.name}</strong>
@@ -50,6 +50,7 @@ export default async function Admin() {
                 <span className="chip pending">{n.pending} pendentes</span>
                 <span className="chip changes">{n.changes} ajustes</span>
                 <span className="chip approved">{n.approved} aprovados</span>
+                <span className="chip posted">{n.posted} postados</span>
               </span>
             </Link>
           );

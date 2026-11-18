@@ -34,3 +34,7 @@ alter table mural_posts enable row level security;
 insert into storage.buckets (id, name, public)
 values ('mural', 'mural', true)
 on conflict (id) do nothing;
+
+-- v2: marcação "Postado" + link do post
+alter table mural_posts add column if not exists posted boolean not null default false;
+alter table mural_posts add column if not exists post_url text;

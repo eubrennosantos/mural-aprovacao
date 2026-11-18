@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     .update(update)
     .eq('id', postId)
     .eq('client_id', client.id)
+    .eq('posted', false)
     .select('status, client_comment, reviewed_at')
     .single();
   if (error || !data) return NextResponse.json({ error: 'not found' }, { status: 404 });

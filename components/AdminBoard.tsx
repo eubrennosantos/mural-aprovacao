@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import MediaViewer from './MediaViewer';
-import { formatDate, type Format, type Post, type StoredMedia, type ViewMedia } from '@/lib/types';
+import { formatDate, viewOf, type Format, type Post, type StoredMedia, type ViewMedia } from '@/lib/types';
 
-const STATUS_PT = { pending: 'Pendente', approved: 'Aprovado', changes: 'Pediu ajuste' };
+const STATUS_PT = { pending: 'Pendente', approved: 'Aprovado', changes: 'Pediu ajuste', posted: 'Postado' };
 const FORMAT_PT = { image: 'Imagem', carousel: 'Carrossel', video: 'Vídeo' };
 const MAX_MB = 50; // limite por arquivo do plano free do Supabase
 
@@ -51,15 +51,18 @@ export default function AdminBoard({ clientId, shareUrl, posts }: { clientId: st
 
       <div className="admin-list">
         {posts.map((p) => (
-          <div key={p.id} className={`panel admin-post ${p.status}`}>
+          <div key={p.id} className={`panel admin-post ${viewOf(p)}`}>
             <div className="thumb"><MediaViewer media={p.media} /></div>
             <div className="info">
               <div className="row-between">
                 <strong>{formatDate(p.post_date, 'pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}</strong>
-                <span className={`chip ${p.status}`}>{STATUS_PT[p.status]}</span>
+                <span className={`chip ${viewOf(p)}`}>{STATUS_PT[viewOf(p)]}</span>
               </div>
               <div className="small muted">{FORMAT_PT[p.format]} · {p.media.length} arquivo(s){p.revision > 1 ? ` · versão ${p.revision}` : ''}</div>
               <p className="clamp small">{p.caption || <em className="muted">Sem legenda</em>}</p>
+              {p.posted && p.post_url && (
+                <a className="small" href={p.post_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Ver no Instagram ›</a>
+              )}
               {p.client_comment && (
                 <div className="note"><strong>Comentário do cliente</strong><p>{p.client_comment}</p></div>
               )}
@@ -82,7 +85,11 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
   const [caption, setCaption] = useState(post?.caption || '');
   const [kept, setKept] = useState<ViewMedia[]>(post?.media || []);
   const [files, setFiles] = useState<File[]>([]);
-  const [resubmit, setResubmit] = useState(post?.status === 'changes');
+  const [resubmit, setResubmit] = useState(post?.status === 'changes' && !post?.posted);
+  const today = new Date().toISOString().slice(0, 10);
+  const [posted, setPosted] = useState(post ? post.posted : false);
+  const [postUrl, setPostUrl] = useState(post?.post_url || '');
+  const [touchedPosted, setTouchedPosted] = useState(!!post);
   const [status, setStatus] = useState('');
 
   async function save(e: React.FormEvent) {
@@ -113,7 +120,7 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
     const res = await fetch('/api/admin/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, resubmit }),
+      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, resubmit, posted, post_url: postUrl }),
     });
     setStatus('');
     if (!res.ok) return alert('Erro ao salvar: ' + (await res.text()));
@@ -124,7 +131,11 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
     <form className="panel form" onSubmit={save}>
       <h3>{post ? 'Editar post' : 'Novo post'}</h3>
       <div className="row">
-        <label>Data da postagem<input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></label>
+        <label>Data da postagem<input type="date" value={date} onChange={(e) => {
+          setDate(e.target.value);
+          // New post with a past date: assume it was already published (can be unticked).
+          if (!touchedPosted) setPosted(e.target.value < today);
+        }} required /></label>
         <label>Formato
           <select value={format} onChange={(e) => setFormat(e.target.value as Format)}>
             <option value="image">Imagem</option>
@@ -152,7 +163,19 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
       </label>
       <p className="small muted">Máximo {MAX_MB} MB por arquivo.</p>
 
-      {post && (
+      <div className="posted-box">
+        <label className="check">
+          <input type="checkbox" checked={posted} onChange={(e) => { setPosted(e.target.checked); setTouchedPosted(true); }} />
+          Já foi postado (o cliente vê como &quot;Posted&quot;, sem botões de aprovar)
+        </label>
+        {posted && (
+          <label>Link do post no Instagram (opcional)
+            <input type="url" inputMode="url" placeholder="https://www.instagram.com/p/..." value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
+          </label>
+        )}
+      </div>
+
+      {post && !posted && (
         <label className="check">
           <input type="checkbox" checked={resubmit} onChange={(e) => setResubmit(e.target.checked)} />
           Enviar como nova versão (volta para &quot;pendente&quot; e o cliente aprova de novo)

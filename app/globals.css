@@ -83,13 +83,13 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .cb-hero-text { font-size: clamp(17px, 2.2vw, 22px); line-height: 1.4; color: #a1a1a1; max-width: 640px; margin: 22px auto 0; }
 .cb-hero-ctas { display: flex; gap: 26px; justify-content: center; align-items: center; margin-top: 34px; flex-wrap: wrap; }
 .cb-stats {
-  display: grid; grid-template-columns: repeat(4, 1fr); max-width: 820px; margin: 72px auto 0;
+  display: grid; grid-template-columns: repeat(5, 1fr); max-width: 900px; margin: 72px auto 0;
   border-top: 1px solid var(--charcoal); padding-top: 28px;
 }
 .cb-stat { display: grid; gap: 4px; }
 .cb-stat strong { font-size: clamp(30px, 4.5vw, 48px); font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .cb-stat span { font-size: 12px; color: var(--gray); letter-spacing: .06em; text-transform: uppercase; }
-.cb-progress { max-width: 820px; height: 2px; background: var(--charcoal); margin: 32px auto 0; }
+.cb-progress { max-width: 900px; height: 2px; background: var(--charcoal); margin: 32px auto 0; }
 .cb-progress span { display: block; height: 100%; background: var(--white); transition: width .5s ease; }
 
 /* Buttons & links */
@@ -195,6 +195,10 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .cb-write { display: grid; gap: 10px; }
 .cb-write .cb-row { justify-content: flex-end; gap: 18px; }
 .cb-tile.approved .media { opacity: .9; }
+.cb-status.posted { color: var(--white); background: var(--black); padding: 2px 8px; border-radius: 999px; }
+.cb-ig { display: inline-block; text-decoration: none; }
+.cb-posted-note { font-size: 13px; color: var(--gray); }
+.cb-tile.posted .cb-tile-format::after { content: ''; }
 
 /* Footer */
 .cb-footer { background: var(--off); border-top: 1px solid var(--line); margin-top: 88px; padding: 28px 0 40px; font-size: 12px; color: var(--gray); }
@@ -211,6 +215,7 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
   .cb-wordmark { height: 12px; }
   .cb-hero { padding: 64px 22px 52px; }
   .cb-stats { grid-template-columns: repeat(2, 1fr); row-gap: 26px; margin-top: 52px; }
+  .cb-stat:last-child { grid-column: span 2; }
   .cb-month { padding-top: 60px; }
   .cb-grid { gap: 44px; }
   .cb-row .cb-btn { flex: 1; }
@@ -243,6 +248,7 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .chip.pending { background: var(--week-past); color: var(--gray); }
 .chip.approved { background: var(--black); color: var(--white); }
 .chip.changes { border: 1px solid var(--black); color: var(--black); }
+.chip.posted { background: var(--black); color: var(--white); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .note { background: var(--off); border-left: 2px solid var(--black); padding: 10px 12px; font-size: 13px; }
 .note p { margin: 2px 0 0; white-space: pre-wrap; }
@@ -255,6 +261,7 @@ label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; flex: 1; }
 .form h3 { margin: 0; }
 .check { display: flex; gap: 8px; align-items: center; font-weight: 500; }
 .check input { width: auto; }
+.posted-box { display: grid; gap: 10px; padding: 12px 14px; background: var(--off); border-radius: var(--radius); }
 .kept { display: flex; gap: 8px; flex-wrap: wrap; }
 .kept-item { position: relative; width: 84px; height: 105px; border-radius: 4px; overflow: hidden; background: var(--black); }
 .kept-item img, .kept-item video { width: 100%; height: 100%; object-fit: cover; }

@@ -4,16 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import MediaViewer from './MediaViewer';
 import ThemeToggle from './ThemeToggle';
 import { BRAND } from '@/lib/brand';
-import { formatDate, type Post, type Status } from '@/lib/types';
+import { formatDate, viewOf, type Post, type Status, type View } from '@/lib/types';
 
 const FORMAT_LABEL = { image: 'Image', carousel: 'Carousel', video: 'Video' };
-const STATUS_LABEL: Record<Status, string> = { pending: 'In review', approved: 'Approved', changes: 'Changes requested' };
-type Filter = 'all' | Status;
+const STATUS_LABEL: Record<View, string> = { pending: 'In review', approved: 'Approved', changes: 'Changes requested', posted: 'Posted' };
+type Filter = 'all' | View;
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'pending', label: 'In review' },
   { key: 'changes', label: 'Changes' },
   { key: 'approved', label: 'Approved' },
+  { key: 'posted', label: 'Posted' },
 ];
 
 export default function ClientBoard({ token, clientName, initialPosts }: { token: string; clientName: string; initialPosts: Post[] }) {
@@ -21,8 +22,8 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
   const [filter, setFilter] = useState<Filter>('all');
 
   const counts = useMemo(() => {
-    const c = { all: posts.length, pending: 0, approved: 0, changes: 0 };
-    posts.forEach((p) => c[p.status]++);
+    const c = { all: posts.length, pending: 0, approved: 0, changes: 0, posted: 0 };
+    posts.forEach((p) => c[viewOf(p)]++);
     return c;
   }, [posts]);
 
@@ -43,7 +44,7 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
     setToday(t);
     const ym = t.slice(0, 7);
     const hasCurrent = posts.some((p) => p.post_date.startsWith(ym));
-    const firstPending = posts.find((p) => p.status !== 'approved')?.post_date.slice(0, 7);
+    const firstPending = posts.find((p) => !p.posted && p.status !== 'approved')?.post_date.slice(0, 7);
     const m = hasCurrent ? ym : firstPending || posts[0]?.post_date.slice(0, 7) || ym;
     setOpenMonth(m);
     setOpenWeek(defaultWeek(m, posts, t));
@@ -53,10 +54,11 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
   const weeks = useMemo(() => (openMonth ? weeksOfMonth(openMonth) : []), [openMonth]);
   const week = weeks.find((w) => w.key === openWeek) || null;
   const weekPosts = week
-    ? posts.filter((p) => p.post_date >= week.start && p.post_date <= week.end && (filter === 'all' || p.status === filter))
+    ? posts.filter((p) => p.post_date >= week.start && p.post_date <= week.end && (filter === 'all' || viewOf(p) === filter))
     : [];
 
-  const pct = counts.all ? Math.round((counts.approved / counts.all) * 100) : 0;
+  const done = counts.approved + counts.posted;
+  const pct = counts.all ? Math.round((done / counts.all) * 100) : 0;
 
   function patch(id: string, data: Partial<Post>) {
     setPosts((ps) => ps.map((p) => (p.id === id ? { ...p, ...data } : p)));
@@ -81,7 +83,7 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
         <div className="cb-inner">
           <img src={BRAND.markWhite} alt={BRAND.name} className="cb-mark" />
           <span className="cb-globalnav-title">Content Approval</span>
-          <span className="cb-globalnav-meta">{counts.approved}/{counts.all}</span>
+          <span className="cb-globalnav-meta">{done}/{counts.all}</span>
         </div>
       </nav>
 
@@ -118,7 +120,8 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
           <Stat value={counts.all} label="Posts planned" />
           <Stat value={counts.pending} label="In review" />
           <Stat value={counts.changes} label="Changes requested" />
-          <Stat value={`${pct}%`} label="Approved" />
+          <Stat value={counts.approved} label="Approved" />
+          <Stat value={counts.posted} label="Posted" />
         </div>
         <div className="cb-progress"><span style={{ width: `${pct}%` }} /></div>
       </header>
@@ -133,9 +136,10 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
             <div className="cb-months">
               {months.map((m) => {
                 const list = posts.filter((p) => p.post_date.startsWith(m));
-                const ok = list.filter((p) => p.status === 'approved').length;
-                const rev = list.filter((p) => p.status === 'pending').length;
-                const chg = list.filter((p) => p.status === 'changes').length;
+                const ok = list.filter((p) => viewOf(p) === 'approved').length;
+                const rev = list.filter((p) => viewOf(p) === 'pending').length;
+                const chg = list.filter((p) => viewOf(p) === 'changes').length;
+                const pst = list.filter((p) => p.posted).length;
                 const state = !today ? '' : m < today.slice(0, 7) ? 'past' : m === today.slice(0, 7) ? 'current' : 'future';
                 return (
                   <button key={m} className={`cb-mblock ${state} ${m === openMonth ? 'open' : ''}`} onClick={() => pickMonth(m)} aria-expanded={m === openMonth}>
@@ -145,8 +149,8 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
                     </div>
                     <strong>{formatDate(m + '-01', 'en-US', { month: 'long' })}</strong>
                     <span className="cb-mblock-count">{list.length ? `${list.length} post${list.length > 1 ? 's' : ''}` : 'No posts yet'}</span>
-                    <div className="cb-mbar"><span style={{ width: `${list.length ? (ok / list.length) * 100 : 0}%` }} /></div>
-                    <span className="cb-mblock-detail">{ok} approved · {rev} in review{chg ? ` · ${chg} change${chg > 1 ? 's' : ''}` : ''}</span>
+                    <div className="cb-mbar"><span style={{ width: `${list.length ? ((ok + pst) / list.length) * 100 : 0}%` }} /></div>
+                    <span className="cb-mblock-detail">{pst ? `${pst} posted · ` : ''}{ok} approved · {rev} in review{chg ? ` · ${chg} change${chg > 1 ? 's' : ''}` : ''}</span>
                   </button>
                 );
               })}
@@ -167,7 +171,7 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
                 <div className="cb-weeks" role="tablist">
                   {weeks.map((w, idx) => {
                     const list = posts.filter((p) => p.post_date >= w.start && p.post_date <= w.end);
-                    const ok = list.filter((p) => p.status === 'approved').length;
+                    const ok = list.filter((p) => p.posted || p.status === 'approved').length;
                     const open = list.length - ok;
                     const state = !today ? 'future' : w.end < today ? 'past' : w.start <= today ? 'current' : 'future';
                     return (
@@ -181,7 +185,7 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
                         <span className="cb-week-label">Week {idx + 1}{state === 'current' ? ' · Now' : ''}</span>
                         <strong>{rangeLabel(w.start, w.end)}</strong>
                         <span className="cb-week-meta">
-                          {!list.length ? 'No posts' : open === 0 ? `✓ ${list.length} approved` : `${list.length} post${list.length > 1 ? 's' : ''} · ${open} open`}
+                          {!list.length ? 'No posts' : open === 0 ? (list.every((p) => p.posted) ? `✓ ${list.length} posted` : `✓ ${list.length} done`) : `${list.length} post${list.length > 1 ? 's' : ''} · ${open} open`}
                         </span>
                       </button>
                     );
@@ -192,7 +196,7 @@ export default function ClientBoard({ token, clientName, initialPosts }: { token
                   <div className="cb-week-posts">
                     <h4>
                       {rangeLabel(week.start, week.end, true)}.{' '}
-                      <span>{weekPosts.length ? `${weekPosts.length} post${weekPosts.length > 1 ? 's' : ''}${filter !== 'all' ? ` · ${STATUS_LABEL[filter as Status].toLowerCase()}` : ''}.` : filter === 'all' ? 'Nothing scheduled this week.' : 'Nothing in this filter.'}</span>
+                      <span>{weekPosts.length ? `${weekPosts.length} post${weekPosts.length > 1 ? 's' : ''}${filter !== 'all' ? ` · ${STATUS_LABEL[filter as View].toLowerCase()}` : ''}.` : filter === 'all' ? 'Nothing scheduled this week.' : 'Nothing in this filter.'}</span>
                     </h4>
                     {weekPosts.length > 0 && (
                       <div className="cb-grid">
@@ -255,12 +259,12 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
   }
 
   return (
-    <article className={`cb-tile ${post.status}`}>
+    <article className={`cb-tile ${viewOf(post)}`}>
       <MediaViewer media={post.media} />
       <div className="cb-tile-body">
         <div className="cb-tile-meta">
           <span>{formatDate(post.post_date, 'en-US', { weekday: 'long' })}</span>
-          <span className={`cb-status ${post.status}`}>{post.status === 'approved' && '✓ '}{STATUS_LABEL[post.status]}</span>
+          <span className={`cb-status ${viewOf(post)}`}>{(post.posted || post.status === 'approved') && '✓ '}{STATUS_LABEL[viewOf(post)]}</span>
         </div>
         <h3>{formatDate(post.post_date, 'en-US', { month: 'long', day: 'numeric' })}</h3>
         <p className="cb-tile-format">
@@ -275,7 +279,7 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
           </div>
         )}
 
-        {post.client_comment && (post.status === 'changes' || post.revision > 1) && (
+        {!post.posted && post.client_comment && (post.status === 'changes' || post.revision > 1) && (
           <div className="cb-note">
             <span>{post.status === 'changes' ? 'Your request' : 'Your previous request'}</span>
             <p>{post.client_comment}</p>
@@ -283,7 +287,13 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
         )}
 
         <div className="cb-tile-actions">
-          {writing ? (
+          {post.posted ? (
+            post.post_url ? (
+              <a className="cb-btn outline cb-ig" href={post.post_url} target="_blank" rel="noopener noreferrer">View on Instagram ›</a>
+            ) : (
+              <span className="cb-posted-note">Published</span>
+            )
+          ) : writing ? (
             <div className="cb-write">
               <textarea autoFocus placeholder="What should we change?" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} />
               <div className="cb-row">
@@ -339,7 +349,7 @@ function defaultWeek(ym: string, posts: Post[], today: string | null) {
   const ws = weeksOfMonth(ym);
   const cur = today && ws.find((w) => w.start <= today && today <= w.end);
   if (cur) return cur.key;
-  const withOpen = ws.find((w) => posts.some((p) => p.post_date >= w.start && p.post_date <= w.end && p.status !== 'approved'));
+  const withOpen = ws.find((w) => posts.some((p) => p.post_date >= w.start && p.post_date <= w.end && !p.posted && p.status !== 'approved'));
   const withAny = ws.find((w) => posts.some((p) => p.post_date >= w.start && p.post_date <= w.end));
   return (withOpen || withAny || ws[0]).key;
 }
