@@ -31,6 +31,7 @@ export async function POST(req: Request) {
     posted: !!body.posted,
     post_url: body.posted ? cleanUrl(body.post_url) : null,
     cover_path: typeof body.cover_path === 'string' && body.cover_path ? body.cover_path : null,
+    video_url: cleanUrl(body.video_url),
     updated_at: new Date().toISOString(),
   };
 

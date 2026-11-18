@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import MediaViewer from './MediaViewer';
 import ThemeToggle from './ThemeToggle';
 import { BRAND } from '@/lib/brand';
-import { formatDate, viewOf, type Post, type Status, type View } from '@/lib/types';
+import { formatDate, videoLabel, viewOf, type Post, type Status, type View } from '@/lib/types';
 
 const FORMAT_LABEL = { image: 'Image', carousel: 'Carousel', video: 'Video' };
 const STATUS_LABEL: Record<View, string> = { pending: 'In review', approved: 'Approved', changes: 'Changes requested', posted: 'Posted' };
@@ -260,7 +260,15 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
 
   return (
     <article className={`cb-tile ${viewOf(post)}`}>
-      <MediaViewer media={post.media} cover={post.cover_url} />
+      <div className="cb-media-wrap">
+        <MediaViewer media={post.media} cover={post.cover_url} />
+        {post.video_url && !post.media.some((m) => m.type === 'video') && (
+          <a className="cb-play" href={post.video_url} target="_blank" rel="noopener noreferrer" aria-label={videoLabel(post.video_url)}>
+            <span className="cb-play-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor" /></svg></span>
+            <span className="cb-play-label">{videoLabel(post.video_url)}</span>
+          </a>
+        )}
+      </div>
       <div className="cb-tile-body">
         <div className="cb-tile-meta">
           <span>{formatDate(post.post_date, 'en-US', { weekday: 'long' })}</span>
@@ -284,6 +292,13 @@ function Tile({ post, token, onChange }: { post: Post; token: string; onChange: 
             <span>{post.status === 'changes' ? 'Your request' : 'Your previous request'}</span>
             <p>{post.client_comment}</p>
           </div>
+        )}
+
+        {post.video_url && (
+          <a className="cb-watch" href={post.video_url} target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor" /></svg>
+            {videoLabel(post.video_url)} ↗
+          </a>
         )}
 
         <div className="cb-tile-actions">

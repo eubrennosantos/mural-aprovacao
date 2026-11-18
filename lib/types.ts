@@ -21,7 +21,16 @@ export type Post = {
   post_url: string | null;
   cover_path: string | null;
   cover_url: string | null;
+  video_url: string | null;
 };
+
+export function videoLabel(url: string) {
+  return /(^|\.)(frame\.io|f\.io)$/i.test(safeHost(url)) ? 'Watch on Frame.io' : 'Watch video';
+}
+
+function safeHost(url: string) {
+  try { return new URL(url).hostname; } catch { return ''; }
+}
 
 // What the post looks like to the client: published posts are "posted" regardless of review status.
 export function viewOf(p: Pick<Post, 'posted' | 'status'>): View {

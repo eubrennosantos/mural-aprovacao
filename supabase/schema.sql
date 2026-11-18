@@ -45,3 +45,7 @@ alter table mural_posts add column if not exists cover_path text;
 update mural_posts set cover_path = media->0->>'path', media = '[]'::jsonb
 where cover_path is null and format = 'video' and jsonb_array_length(media) = 1 and media->0->>'type' = 'image';
 notify pgrst, 'reload schema';
+
+-- v4: link do vídeo (Frame.io)
+alter table mural_posts add column if not exists video_url text;
+notify pgrst, 'reload schema';

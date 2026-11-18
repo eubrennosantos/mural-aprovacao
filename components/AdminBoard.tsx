@@ -60,6 +60,9 @@ export default function AdminBoard({ clientId, shareUrl, posts }: { clientId: st
               </div>
               <div className="small muted">{FORMAT_PT[p.format]} · {p.media.length} arquivo(s){p.revision > 1 ? ` · versão ${p.revision}` : ''}</div>
               <p className="clamp small">{p.caption || <em className="muted">Sem legenda</em>}</p>
+              {p.video_url && (
+                <a className="small" href={p.video_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Vídeo no Frame.io ›</a>
+              )}
               {p.posted && p.post_url && (
                 <a className="small" href={p.post_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Ver no Instagram ›</a>
               )}
@@ -86,6 +89,7 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
   const [kept, setKept] = useState<ViewMedia[]>(post?.media || []);
   const [coverKept, setCoverKept] = useState<string | null>(post?.cover_path || null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState(post?.video_url || '');
   const fileUrl = useMemo(() => (coverFile ? URL.createObjectURL(coverFile) : null), [coverFile]);
   useEffect(() => () => { if (fileUrl) URL.revokeObjectURL(fileUrl); }, [fileUrl]);
   const coverPreview = fileUrl || (coverKept ? post?.cover_url || null : null);
@@ -100,9 +104,9 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
   async function save(e: React.FormEvent) {
     e.preventDefault();
     const tooBig = files.find((f) => f.size > MAX_MB * 1024 * 1024);
-    if (tooBig) return alert(`"${tooBig.name}" passa de ${MAX_MB} MB. Exporte numa versão mais leve (ex.: 1080p, bitrate menor).`);
+    if (tooBig) return alert(`"${tooBig.name}" passa de ${MAX_MB} MB. Para vídeos grandes, suba no Frame.io e cole o link no campo "Link do vídeo".`);
     if (coverFile && coverFile.size > MAX_MB * 1024 * 1024) return alert(`A capa passa de ${MAX_MB} MB.`);
-    if (!kept.length && !files.length && !coverFile && !coverKept) return alert('Adicione pelo menos uma capa, imagem ou vídeo.');
+    if (!kept.length && !files.length && !coverFile && !coverKept && !videoUrl.trim()) return alert('Adicione pelo menos uma capa, imagem, vídeo ou link do vídeo.');
 
     const supa = browserSupa();
     async function uploadOne(f: File) {
@@ -140,7 +144,7 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
     const res = await fetch('/api/admin/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, cover_path: coverPath, resubmit, posted, post_url: postUrl }),
+      body: JSON.stringify({ id: post?.id, clientId, post_date: date, format, caption, media, cover_path: coverPath, video_url: videoUrl, resubmit, posted, post_url: postUrl }),
     });
     setStatus('');
     if (!res.ok) return alert('Erro ao salvar: ' + (await res.text()));
@@ -181,6 +185,11 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
         </div>
       </div>
 
+      <label>Link do vídeo (Frame.io)
+        <input type="url" inputMode="url" placeholder="https://f.io/... ou https://next.frame.io/..." value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
+      </label>
+      <p className="small muted" style={{ marginTop: -8 }}>O cliente vê a capa com um botão de play que abre esse link. Use pra vídeos grandes.</p>
+
       {kept.length > 0 && (
         <div className="kept">
           {kept.map((m) => (
@@ -192,7 +201,7 @@ function PostForm({ clientId, post, onDone, onCancel }: { clientId: string; post
         </div>
       )}
 
-      <label>{post ? 'Adicionar/substituir arquivos' : 'Arquivos (imagens ou vídeos, na ordem do carrossel)'}
+      <label>{post ? 'Adicionar/substituir arquivos (opcional)' : 'Arquivos (opcional: imagens ou vídeos até 50 MB, na ordem do carrossel)'}
         <input type="file" multiple accept="image/*,video/*" onChange={(e) => setFiles(Array.from(e.target.files || []))} />
       </label>
       <p className="small muted">Máximo {MAX_MB} MB por arquivo.</p>
